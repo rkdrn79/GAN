@@ -1,36 +1,28 @@
 import os
 import numpy as np
-import math
 
 import argparse
 
-import torchvision.transforms as transforms
 from torchvision.utils import save_image
-
-from torch.utils.data import DataLoader
-from torchvision import datasets
 from torch.autograd import Variable
 
-import torch.nn as nn
-import torch.nn.functional as F
 import torch
 
 from torchvision.models import inception_v3
-from scipy.stats import entropy
-from PIL import Image
 import glob
 
 from model.generator import Generator
 from model.discriminator import Discriminator
-from data_handler.dataset import Dataset
+from data_handler.dataset_factory import DatasetFactory
+from utils.eval import calculate_inception_score
 
 def main():
-    parser = argparse.ArgumentParser(description='FACIL - Framework for Analysis of Class Incremental Learning')
+    parser = argparse.ArgumentParser(description='GAN')
 
     # miscellaneous args
     parser.add_argument('--n_epochs', type=int, default=100,
                         help='EPOCH (default=%(default)s)')
-    parser.add_argument('--batch_size', type=int, default=64,
+    parser.add_argument('--batch_size', type=int, default=16,
                         help='Batch size (default=%(default)s)')
     parser.add_argument('--lr', type=float, default=0.0002,
                         help='Learning rate (default=%(default)s)')
@@ -48,12 +40,29 @@ def main():
                         help='Number of image channels (default=%(default)s)')
     parser.add_argument('--sample_interval', type=int, default=400,
                         help='Interval betwen image samples (default=%(default)s)')
+    parser.add_argument('--dataset', type=str, default='MNIST',
+                        help='Dataset (default=%(default)s)')
+    parser.add_argument('--block', type=str, default='basic',
+                        help='Block name (default=%(default)s)')
+    parser.add_argument('--eval_dir', type = str, default='/home/mingu/GAN/eval_log',
+                        help='Image save path')
+    parser.add_argument('--data_dir', type = str, default='/home/mingu/GAN/data',
+                        help='Image save path')
     
-    img_shape = (parser.channels, parser.img_size, parser.img_size)
+    arg = parser.parse_args()
+    
+    img_shape = (arg.channels, arg.img_size, arg.img_size)
 
+    # dataload
+    factory = DatasetFactory()
+    dataloader, test_dataloader = factory.get_dataset(arg.dataset, arg.img_size, arg.batch_size, arg.data_dir)
+    
     # Initialize generator and discriminator
-    generator = Generator()
-    discriminator = Discriminator()
+    generator = Generator(img_shape = img_shape, latent_dim = arg.latent_dim, block_name=arg.block)
+    discriminator = Discriminator(img_shape = img_shape)
+    
+    # Load pretrained Inception v3 model
+    inception_model = inception_v3(pretrained=True, transform_input=False).eval()
 
     adversarial_loss = torch.nn.BCELoss()
 
@@ -61,11 +70,12 @@ def main():
     if cuda:
         generator.cuda()
         discriminator.cuda()
+        inception_model.cuda()
         adversarial_loss.cuda()
-
+    
     # Optimizers
-    optimizer_G = torch.optim.Adam(generator.parameters(), lr=parser.lr, betas=(parser.b1, parser.b2))
-    optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=parser.lr, betas=(parser.b1, parser.b2))
+    optimizer_G = torch.optim.Adam(generator.parameters(), lr=arg.lr, betas=(arg.b1, arg.b2))
+    optimizer_D = torch.optim.Adam(discriminator.parameters(), lr=arg.lr, betas=(arg.b1, arg.b2))
 
     Tensor = torch.cuda.FloatTensor if cuda else torch.FloatTensor
 
@@ -73,7 +83,14 @@ def main():
     #  Training
     # ----------
 
-    for epoch in range(3):
+    for epoch in range(arg.n_epochs):
+
+        epoch_dir = os.path.join(arg.eval_dir, f"epoch_{epoch}")
+        os.makedirs(epoch_dir, exist_ok=True)
+        os.makedirs(epoch_dir + '/train', exist_ok=True)
+        os.makedirs(epoch_dir + '/test', exist_ok=True)
+
+        generator.train()
         for i, (imgs, _) in enumerate(dataloader):
 
             # Adversarial ground truths
@@ -90,7 +107,7 @@ def main():
             optimizer_G.zero_grad()
 
             # Sample noise as generator input
-            z = Variable(Tensor(np.random.normal(0, 1, (imgs.shape[0], parser.latent_dim))))
+            z = Variable(Tensor(np.random.normal(0, 1, (imgs.shape[0], arg.latent_dim))))
 
             # Generate a batch of images
             gen_imgs = generator(z)
@@ -117,85 +134,56 @@ def main():
 
             print(
                 "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
-                % (epoch, parser.n_epochs, i, len(dataloader), d_loss.item(), g_loss.item())
+                % (epoch, arg.n_epochs, i, len(dataloader), d_loss.item(), g_loss.item())
             )
 
             batches_done = epoch * len(dataloader) + i
-            if batches_done % parser.sample_interval == 0:
+            if batches_done % arg.sample_interval == 0:
                 save_image(gen_imgs.data[:25], "images/%d.png" % batches_done, nrow=5, normalize=True)
 
 
-    # ----------
-    #  Save Generated Images from Test Data
-    # ----------
+        # ----------
+        #  Save Generated Images from Test Data
+        # ----------
 
-    # Generate and save images using the test dataset
-    for i, (test_imgs, _) in enumerate(test_dataloader):
-        test_z = Variable(Tensor(np.random.normal(0, 1, (test_imgs.shape[0], parser.latent_dim))))
-        test_gen_imgs = generator(test_z)
+        # Generate and save images using the test dataset
+        generator.eval()
+        with torch.no_grad:
+            for i, (test_imgs, _) in enumerate(test_dataloader):
+                test_z = Variable(Tensor(np.random.normal(0, 1, (test_imgs.shape[0], arg.latent_dim))))
+                test_gen_imgs = generator(test_z)
 
-        for j in range(test_gen_imgs.size(0)):
-            save_image(test_gen_imgs.data[j], "test_images/test_img_%d.png" % (i * test_dataloader.batch_size + j), normalize=True)
+                for j in range(test_gen_imgs.size(0)):
+                    save_image(test_gen_imgs.data[j], epoch_dir + "test_images/test_img_%d.png" % (i * test_dataloader.batch_size + j), normalize=True)
 
+        # ----------
+        #  Eval train Data
+        # ----------
 
-    # Load pretrained Inception v3 model
-    inception_model = inception_v3(pretrained=True, transform_input=False).eval()
-    if cuda:
-        inception_model.cuda()
+        # Define the path to the directory containing the test images
+        train_image_path = epoch_dir + 'train/'
 
-    # Function to get prediction for a single image
-    def get_pred(img, model, cuda):
-        img = img.unsqueeze(0)  # Add batch dimension
-        if cuda:
-            img = img.cuda()
-        with torch.no_grad():
-            pred = model(img)
-            return F.softmax(pred, dim=1).cpu().numpy()
+        # Load test image paths
+        train_image_paths = glob.glob(train_image_path + '*.png')
 
-    # Function to calculate Inception Score
-    def calculate_inception_score(image_paths, model, cuda=True, splits=10):
-        preds = []
+        # Calculate Inception Score
+        mean_is, std_is = calculate_inception_score(train_image_paths, inception_model, cuda=cuda, splits=10)
+        print("Train Inception Score: Mean - {}, Std - {}".format(mean_is, std_is))
 
-        transform = transforms.Compose([
-            transforms.Resize((299, 299)),
-            transforms.ToTensor(),
-            transforms.Normalize([0.5, 0.5, 0.5], [0.5, 0.5, 0.5])  # Normalize for Inception v3
-        ])
+        # ----------
+        #  Eval Test Data
+        # ----------
 
-        for img_path in image_paths:
-            img = Image.open(img_path).convert('RGB')  # Convert image to RGB
-            img = transform(img)
-            pred = get_pred(img, model, cuda)
-            preds.append(pred)
+        # Define the path to the directory containing the test images
+        test_image_path = epoch_dir + 'test/'
 
-        preds = np.concatenate(preds, axis=0)
+        # Load test image paths
+        test_image_paths = glob.glob(test_image_path + '*.png')
 
-        # Now compute the mean kl-div
-        split_scores = []
+        # Calculate Inception Score
+        mean_is, std_is = calculate_inception_score(test_image_paths, inception_model, cuda=cuda, splits=10)
+        print("Test Inception Score: Mean - {}, Std - {}".format(mean_is, std_is))
 
-        N = len(preds)
-        for k in range(splits):
-            part = preds[k * (N // splits): (k + 1) * (N // splits), :]
-            py = np.mean(part, axis=0)
-            scores = []
-            for i in range(part.shape[0]):
-                pyx = part[i, :]
-                scores.append(entropy(pyx, py))
-            split_scores.append(np.exp(np.mean(scores)))
-
-        return np.mean(split_scores), np.std(split_scores)
-
-    # Define the path to the directory containing the test images
-    test_image_path = 'test_images/'
-
-    # Load test image paths
-    test_image_paths = glob.glob(test_image_path + '*.png')
-
-    # Calculate Inception Score
-    mean_is, std_is = calculate_inception_score(test_image_paths, inception_model, cuda=cuda, splits=10)
-    print("Inception Score: Mean - {}, Std - {}".format(mean_is, std_is))
-
-    
 
 
 if __name__ == '__main__':

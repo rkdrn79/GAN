@@ -5,6 +5,7 @@ class BlockFactory:
         pass
 
     @staticmethod
-    def get_block(name, latent_dim, in_feat, out_feat, normalize=True):
+    def get_block(name, in_feat, out_feat, normalize=False):
         if name == 'basic':
-            return block.Basic(latent_dim, in_feat, out_feat, normalize=True)
+            blocks = block.Basic(in_feat, out_feat, normalize)
+            return blocks.layers

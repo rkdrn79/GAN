@@ -3,23 +3,27 @@ import torchvision.transforms as transforms
 from torchvision.utils import save_image
 import torch
 
+import os 
+
 class Dataset():
     '''
     Base class to reprenent a Dataset
     '''
 
-    def __init__(self, name, img_size, batch_size):
-        self.name = name
+    def __init__(self, img_size, batch_size, data_dir):
         self.img_size = img_size
         self.batch_size = batch_size
+        self.data_dir = data_dir
+        self.dataloader = None
+        self.test_dataloader = None
 
 class MNIST(Dataset):
-    def __init__(self):
-        super().__init__("MNIST", 28, 64)
-        
-        dataloader = torch.utils.data.DataLoader(
+    def __init__(self, img_size, batch_size, data_dir):
+        super().__init__(img_size, batch_size, data_dir)
+        os.makedirs(self.data_dir+ "/mnist", exist_ok=True)
+        self.dataloader = torch.utils.data.DataLoader(
             datasets.MNIST(
-                "../../data/mnist",
+                self.data_dir + "/mnist",
                 train=True,
                 download=True,
                 transform=transforms.Compose(
@@ -30,10 +34,9 @@ class MNIST(Dataset):
             shuffle=True,
         )
 
-        # Configure test data loader with batch size of 32 (or any value > 1)
-        test_dataloader = torch.utils.data.DataLoader(
+        self.test_dataloader = torch.utils.data.DataLoader(
             datasets.MNIST(
-                "../../data/mnist",
+                self.data_dir + "/mnist",
                 train=False,
                 download=True,
                 transform=transforms.Compose(
@@ -44,15 +47,13 @@ class MNIST(Dataset):
             shuffle=False,
         )
 
-        return dataloader, test_dataloader
-    
 class CIFAR_100(Dataset):
-    def __init__(self):
-        super().__init__("CIFAR-100", 32, 64)
-        
-        dataloader = torch.utils.data.DataLoader(
+    def __init__(self, img_size, batch_size, data_dir):
+        super().__init__(img_size, batch_size, data_dir)
+        os.makedirs(self.data_dir+ "/CIFAR-100", exist_ok=True)
+        self.dataloader = torch.utils.data.DataLoader(
             datasets.CIFAR100(
-                "../../data/cifar-100",
+                self.data_dir+ "/CIFAR-100",
                 train=True,
                 download=True,
                 transform=transforms.Compose(
@@ -63,9 +64,9 @@ class CIFAR_100(Dataset):
             shuffle=True,
         )
 
-        test_dataloader = torch.utils.data.DataLoader(
+        self.test_dataloader = torch.utils.data.DataLoader(
             datasets.CIFAR100(
-                "../../data/cifar-100",
+                self.data_dir+ "/CIFAR-100",
                 train=False,
                 download=True,
                 transform=transforms.Compose(
@@ -75,16 +76,14 @@ class CIFAR_100(Dataset):
             batch_size=self.batch_size//4,  # Set batch size > 1 to avoid BatchNorm issues
             shuffle=False,
         )
-
-        return dataloader, test_dataloader
 
 class ImageNet(Dataset):
-    def __init__(self):
-        super().__init__("ImageNet", 64, 64)
-        
-        dataloader = torch.utils.data.DataLoader(
+    def __init__(self, img_size, batch_size, data_dir):
+        super().__init__(img_size, batch_size, data_dir)
+        os.makedirs(self.data_dir+ "/imagenet", exist_ok=True)
+        self.dataloader = torch.utils.data.DataLoader(
             datasets.ImageNet(
-                "../../data/imagenet",
+                self.data_dir+ "/imagenet",
                 split='train',
                 download=True,
                 transform=transforms.Compose(
@@ -95,9 +94,9 @@ class ImageNet(Dataset):
             shuffle=True,
         )
 
-        test_dataloader = torch.utils.data.DataLoader(
+        self.test_dataloader = torch.utils.data.DataLoader(
             datasets.ImageNet(
-                "../../data/imagenet",
+                self.data_dir+ "/imagenet",
                 split='val',
                 download=True,
                 transform=transforms.Compose(
@@ -107,5 +106,3 @@ class ImageNet(Dataset):
             batch_size=self.batch_size//4,  # Set batch size > 1 to avoid BatchNorm issues
             shuffle=False,
         )
-
-        return dataloader, test_dataloader

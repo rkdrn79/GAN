@@ -7,20 +7,18 @@ class Block():
     Base class to reprenent a Dataset
     '''
 
-    def __init__(self, latent_dim, in_feat, out_feat, normalize=True):
-        self.latent_dim = latent_dim
+    def __init__(self, in_feat, out_feat, normalize=True):
         self.in_feat = in_feat
         self.out_feat = out_feat
         self.normalize = normalize
-
+        self.layers = None
 
 
 class Basic(Block):
-    def __init__(self):
-        super().__init__(128, 64, 64)
+    def __init__(self, in_feat, out_feat, normalize=True):
+        super().__init__(in_feat, out_feat, normalize)
     
-        layers = [nn.Linear(self.in_feat, self.out_feat)]
+        self.layers = [nn.Linear(self.in_feat, self.out_feat)]
         if self.normalize:
-            layers.append(nn.BatchNorm1d(self.out_feat, 0.8))
-        layers.append(nn.LeakyReLU(0.2, inplace=True))
-        return layers
+            self.layers.append(nn.BatchNorm1d(self.out_feat, 0.8))
+        self.layers.append(nn.LeakyReLU(0.2, inplace=True))
