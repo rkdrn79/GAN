@@ -39,8 +39,8 @@ python train.py
 - `--sample_interval`: Interval between image samples (default: 100)
 - `--dataset`: Dataset name (default: 'MNIST')
 - `--block`: Block name (default: 'basic')
-- `--eval_dir`: Directory path for evaluation logs (default: '/home/mingu/GAN/eval_log')
-- `--data_dir`: Directory path for dataset (default: '/home/mingu/GAN/data')
+- `--eval_dir`: Directory path for evaluation logs
+- `--data_dir`: Directory path for dataset
 
 ## Experiment Results
 During training, the script logs the Inception Score for both the training and test datasets using Weights & Biases. The Inception Score is a metric used to evaluate the quality of generated images by GANs. The experiment results, including the generated images and Inception Scores, can be tracked on the Weights & Biases dashboard.
