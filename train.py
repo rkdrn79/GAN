@@ -8,6 +8,8 @@ from torch.autograd import Variable
 
 import torch
 
+from tqdm import tqdm
+
 from torchvision.models import inception_v3
 import glob
 
@@ -15,6 +17,11 @@ from model.generator import Generator
 from model.discriminator import Discriminator
 from data_handler.dataset_factory import DatasetFactory
 from utils.eval import calculate_inception_score
+
+import wandb
+
+import warnings
+warnings.filterwarnings("ignore")
 
 def main():
     parser = argparse.ArgumentParser(description='GAN')
@@ -38,7 +45,7 @@ def main():
                         help='Size of each image dimension (default=%(default)s)')
     parser.add_argument('--channels', type=int, default=1,
                         help='Number of image channels (default=%(default)s)')
-    parser.add_argument('--sample_interval', type=int, default=400,
+    parser.add_argument('--sample_interval', type=int, default=100,
                         help='Interval betwen image samples (default=%(default)s)')
     parser.add_argument('--dataset', type=str, default='MNIST',
                         help='Dataset (default=%(default)s)')
@@ -50,6 +57,14 @@ def main():
                         help='Image save path')
     
     arg = parser.parse_args()
+
+    import datetime
+
+    current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+    wandb.init(project='GAN', name= arg.block + "_" + current_time)
+
+    arg.eval_dir = arg.eval_dir + "/" + current_time
     
     img_shape = (arg.channels, arg.img_size, arg.img_size)
 
@@ -83,7 +98,7 @@ def main():
     #  Training
     # ----------
 
-    for epoch in range(arg.n_epochs):
+    for epoch in tqdm(range(arg.n_epochs)):
 
         epoch_dir = os.path.join(arg.eval_dir, f"epoch_{epoch}")
         os.makedirs(epoch_dir, exist_ok=True)
@@ -132,14 +147,14 @@ def main():
             d_loss.backward()
             optimizer_D.step()
 
-            print(
-                "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
-                % (epoch, arg.n_epochs, i, len(dataloader), d_loss.item(), g_loss.item())
-            )
-
             batches_done = epoch * len(dataloader) + i
             if batches_done % arg.sample_interval == 0:
-                save_image(gen_imgs.data[:25], "images/%d.png" % batches_done, nrow=5, normalize=True)
+                print(
+                "[Epoch %d/%d] [Batch %d/%d] [D loss: %f] [G loss: %f]"
+                % (epoch + 1, arg.n_epochs, i, len(dataloader), d_loss.item(), g_loss.item())
+                )
+                for i in range(arg.batch_size):
+                    save_image(gen_imgs.data[i], epoch_dir+ "/train/%d.png" %  (batches_done + i), nrow=5, normalize=True)
 
 
         # ----------
@@ -147,21 +162,19 @@ def main():
         # ----------
 
         # Generate and save images using the test dataset
-        generator.eval()
-        with torch.no_grad:
-            for i, (test_imgs, _) in enumerate(test_dataloader):
-                test_z = Variable(Tensor(np.random.normal(0, 1, (test_imgs.shape[0], arg.latent_dim))))
-                test_gen_imgs = generator(test_z)
+        for i, (test_imgs, _) in enumerate(test_dataloader):
+            test_z = Variable(Tensor(np.random.normal(0, 1, (test_imgs.shape[0], arg.latent_dim))))
+            test_gen_imgs = generator(test_z)
 
-                for j in range(test_gen_imgs.size(0)):
-                    save_image(test_gen_imgs.data[j], epoch_dir + "test_images/test_img_%d.png" % (i * test_dataloader.batch_size + j), normalize=True)
+            for j in range(test_gen_imgs.size(0)):
+                save_image(test_gen_imgs.data[j], epoch_dir + "/test/%d.png" % (i * test_dataloader.batch_size + j), normalize=True)
 
         # ----------
         #  Eval train Data
         # ----------
 
         # Define the path to the directory containing the test images
-        train_image_path = epoch_dir + 'train/'
+        train_image_path = epoch_dir + '/train/'
 
         # Load test image paths
         train_image_paths = glob.glob(train_image_path + '*.png')
@@ -169,13 +182,15 @@ def main():
         # Calculate Inception Score
         mean_is, std_is = calculate_inception_score(train_image_paths, inception_model, cuda=cuda, splits=10)
         print("Train Inception Score: Mean - {}, Std - {}".format(mean_is, std_is))
+        wandb.log({"Train Inception Score Mean": mean_is, "Train Inception Score Std": std_is})
+
 
         # ----------
         #  Eval Test Data
         # ----------
 
         # Define the path to the directory containing the test images
-        test_image_path = epoch_dir + 'test/'
+        test_image_path = epoch_dir + '/test/'
 
         # Load test image paths
         test_image_paths = glob.glob(test_image_path + '*.png')
@@ -183,6 +198,7 @@ def main():
         # Calculate Inception Score
         mean_is, std_is = calculate_inception_score(test_image_paths, inception_model, cuda=cuda, splits=10)
         print("Test Inception Score: Mean - {}, Std - {}".format(mean_is, std_is))
+        wandb.log({"Test Inception Score Mean": mean_is, "Test Inception Score Std": std_is})
 
 
 
