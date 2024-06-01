@@ -27,9 +27,9 @@ def main():
     parser = argparse.ArgumentParser(description='GAN')
 
     # miscellaneous args
-    parser.add_argument('--n_epochs', type=int, default=100,
+    parser.add_argument('--n_epochs', type=int, default=20,
                         help='EPOCH (default=%(default)s)')
-    parser.add_argument('--batch_size', type=int, default=16,
+    parser.add_argument('--batch_size', type=int, default=256,
                         help='Batch size (default=%(default)s)')
     parser.add_argument('--lr', type=float, default=0.0002,
                         help='Learning rate (default=%(default)s)')
@@ -51,9 +51,9 @@ def main():
                         help='Dataset (default=%(default)s)')
     parser.add_argument('--block', type=str, default='basic',
                         help='Block name (default=%(default)s)')
-    parser.add_argument('--eval_dir', type = str, default='/home/mingu/GAN/eval_log',
+    parser.add_argument('--eval_dir', type = str, default = None,
                         help='Image save path')
-    parser.add_argument('--data_dir', type = str, default='/home/mingu/GAN/data',
+    parser.add_argument('--data_dir', type = str, default = None,
                         help='Image save path')
     
     arg = parser.parse_args()

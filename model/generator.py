@@ -15,7 +15,7 @@ class Generator(nn.Module):
             *BlockFactory.get_block(block_name, 128, 256),
             *BlockFactory.get_block(block_name, 256, 512),
             *BlockFactory.get_block(block_name, 512, 1024),
-            nn.Linear(1024, int(np.prod(self.img_shape))),
+            *BlockFactory.get_block(block_name, 1024, int(np.prod(self.img_shape)), last = True),
             nn.Tanh()
         )
 
