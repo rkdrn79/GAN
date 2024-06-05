@@ -51,10 +51,10 @@ def main():
                         help='Dataset (default=%(default)s)')
     parser.add_argument('--block', type=str, default='basic',
                         help='Block name (default=%(default)s)')
-    parser.add_argument('--eval_dir', type = str, default = None,
+    parser.add_argument('--eval_dir', type = str, default = '/home/mingu/GAN/eval_log',
                         help='Image save path')
-    parser.add_argument('--data_dir', type = str, default = None,
-                        help='Image save path')
+    parser.add_argument('--data_dir', type = str, default = '/home/mingu/GAN/data',
+                        help='Dataset path')
     
     arg = parser.parse_args()
 
@@ -64,7 +64,7 @@ def main():
 
     wandb.init(project='GAN', name= arg.block + "_" + current_time)
 
-    arg.eval_dir = arg.eval_dir + "/" + current_time
+    arg.eval_dir = arg.eval_dir + "/" + arg.block + "_" + current_time
     
     img_shape = (arg.channels, arg.img_size, arg.img_size)
 
@@ -166,7 +166,7 @@ def main():
             test_z = Variable(Tensor(np.random.normal(0, 1, (test_imgs.shape[0], arg.latent_dim))))
             test_gen_imgs = generator(test_z)
 
-            for j in range(test_gen_imgs.size(0)):
+            for j in range(5):
                 save_image(test_gen_imgs.data[j], epoch_dir + "/test/%d.png" % (i * test_dataloader.batch_size + j), normalize=True)
 
         # ----------

@@ -9,7 +9,7 @@ class Generator(nn.Module):
         super(Generator, self).__init__()
         self.img_shape = img_shape
         self.latent_dim = latent_dim
-        if block_name in ['basic']:
+        if block_name in ['basic', 'transformer']:
             self.model = nn.Sequential(
                 *BlockFactory.get_block(block_name, self.latent_dim, 128, normalize=True),
                 *BlockFactory.get_block(block_name, 128, 256),

@@ -1,0 +1,1 @@
+{"Train Inception Score Mean": 1.1435344219207764, "Train Inception Score Std": 0.17776736617088318, "_timestamp": 1717590481.6595478, "_runtime": 292.8097188472748, "_step": 1, "Test Inception Score Mean": 1.0214823484420776, "Test Inception Score Std": 0.0006962607731111348, "_wandb": {"runtime": 305}}
