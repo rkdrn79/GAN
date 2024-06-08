@@ -1,6 +1,0 @@
-Traceback (most recent call last):
-  File "/home/mingu/GAN/train.py", line 207, in <module>
-    main()
-  File "/home/mingu/GAN/train.py", line 67, in main
-    arg.eval_dir = arg.eval_dir + "/" + current_time
-TypeError: unsupported operand type(s) for +: 'NoneType' and 'str'

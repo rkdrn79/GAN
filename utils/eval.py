@@ -50,3 +50,7 @@ def calculate_inception_score(image_paths, model, cuda=True, splits=10):
         split_scores.append(np.exp(np.mean(scores)))
 
     return np.mean(split_scores), np.std(split_scores)
+
+
+def count_parameters(model):
+    return sum(p.numel() for p in model.parameters() if p.requires_grad)

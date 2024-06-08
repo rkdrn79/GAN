@@ -17,6 +17,8 @@ from model.generator import Generator
 from model.discriminator import Discriminator
 from data_handler.dataset_factory import DatasetFactory
 from utils.eval import calculate_inception_score
+from utils.utill import count_parameters
+
 
 import wandb
 
@@ -31,7 +33,7 @@ def main():
                         help='EPOCH (default=%(default)s)')
     parser.add_argument('--batch_size', type=int, default=256,
                         help='Batch size (default=%(default)s)')
-    parser.add_argument('--lr', type=float, default=0.0002,
+    parser.add_argument('--lr', type=float, default=1e-3,
                         help='Learning rate (default=%(default)s)')
     parser.add_argument('--b1', type=float, default=0.5,
                         help='B1 (default=%(default)s)')
@@ -51,9 +53,9 @@ def main():
                         help='Dataset (default=%(default)s)')
     parser.add_argument('--block', type=str, default='basic',
                         help='Block name (default=%(default)s)')
-    parser.add_argument('--eval_dir', type = str, default = '/home/mingu/GAN/eval_log',
+    parser.add_argument('--eval_dir', type = str, default = '/home/work/mingu/GAN/eval_log',
                         help='Image save path')
-    parser.add_argument('--data_dir', type = str, default = '/home/mingu/GAN/data',
+    parser.add_argument('--data_dir', type = str, default = '/home/work/mingu/GAN/data',
                         help='Dataset path')
     
     arg = parser.parse_args()
@@ -68,12 +70,17 @@ def main():
     
     img_shape = (arg.channels, arg.img_size, arg.img_size)
 
+    if arg.img_size % 4 != 0:
+        raise argparse.ArgumentTypeError(f"Invalid image size: {arg.img_size}. Image size must be a multiple of 4.")
     # dataload
     factory = DatasetFactory()
     dataloader, test_dataloader = factory.get_dataset(arg.dataset, arg.img_size, arg.batch_size, arg.data_dir)
     
+    
     # Initialize generator and discriminator
     generator = Generator(img_shape = img_shape, latent_dim = arg.latent_dim, block_name=arg.block)
+    print("Generator's parametar count:", count_parameters(generator))
+
     discriminator = Discriminator(img_shape = img_shape)
     
     # Load pretrained Inception v3 model
