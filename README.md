@@ -9,7 +9,7 @@ cd GAN
 
 2. Install the required dependencies:
 ```bash
-conda create -n GAN python=3.8
+conda create -n GAN python=3.10
 conda activate GAN
 pip install -r requirements.txt
 ```
