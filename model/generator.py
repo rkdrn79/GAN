@@ -33,7 +33,6 @@ class Generator(nn.Module):
                 *BlockFactory.get_block(block_name, 256, 128, normalize=True),
                 *BlockFactory.get_block(block_name, 128, 64, normalize=True),
                 nn.ConvTranspose2d(64, self.channels, kernel_size=3, stride=1, padding=1),
-                #*BlockFactory.get_block(block_name, 64, self.channels, normalize=True),
                 nn.Tanh()
             )
             
