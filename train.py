@@ -53,9 +53,9 @@ def main():
                         help='Dataset (default=%(default)s)')
     parser.add_argument('--block', type=str, default='DCNv3',
                         help='Block name (default=%(default)s)')
-    parser.add_argument('--eval_dir', type = str, default = '/home/work/mingu/GAN/eval_log',
+    parser.add_argument('--eval_dir', type = str, default = None,
                         help='Image save path')
-    parser.add_argument('--data_dir', type = str, default = '/home/work/mingu/GAN/data',
+    parser.add_argument('--data_dir', type = str, default = None,
                         help='Dataset path')
     
     arg = parser.parse_args()
