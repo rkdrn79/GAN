@@ -51,7 +51,7 @@ def main():
                         help='Interval betwen image samples (default=%(default)s)')
     parser.add_argument('--dataset', type=str, default='MNIST',
                         help='Dataset (default=%(default)s)')
-    parser.add_argument('--block', type=str, default='basic',
+    parser.add_argument('--block', type=str, default='DCNv3',
                         help='Block name (default=%(default)s)')
     parser.add_argument('--eval_dir', type = str, default = '/home/work/mingu/GAN/eval_log',
                         help='Image save path')

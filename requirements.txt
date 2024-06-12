@@ -1,6 +1,6 @@
-/home/work/mingu/miniforge3/torch==1.10.0
-torchvision==0.11.1
-scipy==1.7.3
-numpy==1.21.3
-Pillow==8.4.0
-wandb==0.12.1
+numpy==1.26.4
+Pillow==10.3.0
+scipy==1.13.1
+torch==2.1.2.post300
+torchvision==0.16.1+b88453f
+tqdm==4.66.4

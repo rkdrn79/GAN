@@ -19,7 +19,7 @@ class Generator(nn.Module):
                 nn.Tanh()
             )
 
-        elif block_name in ['cnn', 'VGG', 'Dense']:
+        elif block_name in [ 'VGG', 'Resnet', 'Dense','InceptionV1','InceptionV2', 'DCNv3']:
             self.channels = self.img_shape[0]
             self.init_size = self.img_shape[1] // 4  # 28 // 4 = 7
             self.model = nn.Sequential(
@@ -32,11 +32,11 @@ class Generator(nn.Module):
                 nn.ConvTranspose2d(256, 256, kernel_size=4, stride=2, padding=1),  # 14x14 -> 28x28
                 *BlockFactory.get_block(block_name, 256, 128, normalize=True),
                 *BlockFactory.get_block(block_name, 128, 64, normalize=True),
-                *BlockFactory.get_block(block_name, 64, self.channels, normalize=True),
+                nn.ConvTranspose2d(64, self.channels, kernel_size=3, stride=1, padding=1),
+                #*BlockFactory.get_block(block_name, 64, self.channels, normalize=True),
                 nn.Tanh()
             )
             
-
     def forward(self, z):
         img = self.model(z)
         img = img.view(img.size(0), *self.img_shape)
